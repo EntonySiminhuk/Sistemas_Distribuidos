@@ -60,7 +60,7 @@ public class ThreadCliente implements Runnable {
 		} finally {
 			// Garante que o mapa só será limpo se o username chegou a ser definido
 			if (username != null) {
-				//servidor_TCP.clientes.remove(username);
+				servidor_TCP.clientes.remove(username);
 				Mensagem AvisoSistema = new Mensagem("SERVIDOR", null, username + " Saiu do chat");
 				broadcast(AvisoSistema);
 			}
@@ -93,7 +93,8 @@ public class ThreadCliente implements Runnable {
 	    }else {
 	    	ThreadCliente destino = servidor_TCP.clientes.get(mensagem.getDestinatario());
 	    	if (destino != null) {
-	    		destino.enviarMensagem(mensagem); 
+	    		destino.enviarMensagem(mensagem);
+				this.enviarMensagem(mensagem);
 	    	}
 	    	else {
 	    		Mensagem avisoSistema = new Mensagem(
@@ -131,7 +132,16 @@ public class ThreadCliente implements Runnable {
 			output.writeObject(mensagem);
 			output.flush();
 		} catch (IOException e) {
-			e.printStackTrace();
+			System.out.println(username + " desconectado.");
+
+			servidor_TCP.clientes.remove(username);
+
+			try {
+				socket.close();
+			} catch (IOException ex) {
+
+			}
+
 		}
 	}
 }
