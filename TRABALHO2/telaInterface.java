@@ -12,6 +12,8 @@ public class telaInterface extends JFrame {
     private JTextField campoMensagem;
     private JButton botaoEnviar;
     private JButton botaoSair;
+    private JButton botaoHelp;
+    private JButton botaoUsuarios;
 
     private Socket socket;
 
@@ -25,8 +27,16 @@ public class telaInterface extends JFrame {
         this.nome = nome;
         setTitle("Chat TCP - " + nome);
         setSize(500, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new BorderLayout());
+
+        //AREA PARA BOTAO DE HELP E LISTAR USUARIOS
+        JPanel painelTopo = new JPanel();
+        botaoHelp = new JButton("Help");
+        botaoUsuarios = new JButton("Usuários Online");
+        painelTopo.add(botaoHelp);
+        painelTopo.add(botaoUsuarios);
+        add(painelTopo, BorderLayout.NORTH);
 
         // ÁREA CHAT
         areaChat = new JTextArea();
@@ -39,37 +49,70 @@ public class telaInterface extends JFrame {
         // PAINEL INFERIOR
         JPanel painel = new JPanel();
         painel.setLayout(new BorderLayout());
-
         campoMensagem = new JTextField();
-
         botaoEnviar = new JButton("Enviar");
         botaoSair = new JButton("Desconectar");
-
         painel.add(campoMensagem, BorderLayout.CENTER);
-
         painel.add(botaoEnviar, BorderLayout.EAST);
         painel.add(botaoSair, BorderLayout.WEST);
-
         add(painel, BorderLayout.SOUTH);
 
         conectar();
 
         // BOTÃO ENVIAR
         botaoEnviar.addActionListener(e -> {
-
             enviarMensagem();
         });
 
         // ENTER
         campoMensagem.addActionListener(e -> {
-
             enviarMensagem();
         });
 
         //BOTÃO DESCONCETAR
         botaoSair.addActionListener(e -> {
-
             desconectar();
+            dispose();
+        });
+
+        //BOTÃO HELP
+        botaoHelp.addActionListener(e -> {
+
+            JOptionPane.showMessageDialog(
+                    this,
+                    """
+                    COMANDOS DISPONÍVEIS:
+                    
+                    Mensagem normal
+                    → Envia para todos
+                    
+                    Listar Usuarios Online
+                    →/usuarios
+        
+                    Mensagem privada
+                    →/privado [destinatario] [mensagem]
+        
+                    Botão Desconectar
+                    → Sai do chat
+                    """,
+
+                    "Ajuda",
+
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+        });
+
+        //BOTÃO LISTA USUARIOS
+        botaoUsuarios.addActionListener(e -> {
+            try {
+                Mensagem mensagem = new Mensagem(nome,null,"/usuarios");
+
+                output.writeObject(mensagem);
+                output.flush();
+
+            } catch(Exception ex) {
+                areaChat.append("Erro ao solicitar usuários.\n");
+            }
         });
 
         setVisible(true);
@@ -78,11 +121,8 @@ public class telaInterface extends JFrame {
     private void conectar() {
 
         try {
-
             socket = new Socket("localhost", 1234);
-
             output = new ObjectOutputStream(socket.getOutputStream());
-
             input = new ObjectInputStream(socket.getInputStream());
 
             // ENVIA NOME
@@ -91,33 +131,24 @@ public class telaInterface extends JFrame {
 
             // THREAD RECEBENDO
             new Thread(() -> {
-
                 try {
-
                     while (true) {
-
                         Mensagem msg = (Mensagem) input.readObject();
-
                         areaChat.append(msg.toString() + "\n");
                     }
-
                 } catch (Exception e) {
-
                     areaChat.append("Conexão encerrada.\n");
                 }
 
             }).start();
 
         } catch (Exception e) {
-
             JOptionPane.showMessageDialog(this, "Erro ao conectar.");
         }
     }
 
     private void enviarMensagem() {
-
         try {
-
             String texto = campoMensagem.getText();
 
             if(texto.isEmpty()) {
@@ -128,7 +159,6 @@ public class telaInterface extends JFrame {
 
             // PRIVADO
             if(texto.startsWith("/privado")) {
-
                 String[] partes = texto.split(" ", 3);
 
                 msg = new Mensagem(
@@ -137,13 +167,11 @@ public class telaInterface extends JFrame {
                         partes[2]);
 
             } else {
-
                 msg = new Mensagem(
                         nome,
                         null,
                         texto);
             }
-
             output.writeObject(msg);
             output.flush();
 
@@ -156,32 +184,21 @@ public class telaInterface extends JFrame {
     }
 
     private void desconectar() {
-
         try {
-
             areaChat.append("Desconectando...\n");
-
             output.close();
-
             input.close();
-
             socket.close();
-
             dispose();
 
         } catch (Exception e) {
-
             areaChat.append(
                     "Erro ao desconectar.\n");
         }
     }
 
     public static void main(String[] args) {
-
-        String nome =
-                JOptionPane.showInputDialog(
-                        "Digite seu nome:");
-
+        String nome = JOptionPane.showInputDialog("Digite seu nome:");
         new telaInterface(nome);
     }
 }

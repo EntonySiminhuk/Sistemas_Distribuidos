@@ -10,6 +10,7 @@ public class ThreadCliente implements Runnable {
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
 	private String username;
+
 	
 	public ThreadCliente(Socket socket) {
 		this.socket = socket;
@@ -56,7 +57,7 @@ public class ThreadCliente implements Runnable {
 				}
 			}
 		} catch (Exception e) {
-			System.err.println(username + " se desconectou");
+
 		} finally {
 			// Garante que o mapa só será limpo se o username chegou a ser definido
 			if (username != null) {
@@ -64,20 +65,12 @@ public class ThreadCliente implements Runnable {
 				Mensagem AvisoSistema = new Mensagem("SERVIDOR", null, username + " Saiu do chat");
 				broadcast(AvisoSistema);
 			}
-			try {
-				socket.close();
-			} catch (IOException E) {
-				// Silencia a falha ao fechar socket
-			}
+			desconectar();
 		}
 	}
 	
 	public void broadcast(Mensagem mensagem) {
 		for (ThreadCliente cliente : servidor_TCP.clientes.values()) {
-			// IGNORA o reenvio para quem mandou a mensagem originária
-			//if (!cliente.username.equals(mensagem.getRemetente())) {
-				//cliente.enviarMensagem(mensagem);
-			//}
 			cliente.enviarMensagem(mensagem);
 		}
 	}
@@ -144,4 +137,37 @@ public class ThreadCliente implements Runnable {
 
 		}
 	}
+	public void desconectar() {
+
+		try {
+			System.out.println(
+					username + " desconectado.");
+
+			// REMOVE DO MAPA
+			servidor_TCP.clientes.remove(username);
+
+			// FECHA OUTPUT
+			if(output != null) {
+				output.close();
+			}
+
+			// FECHA INPUT
+			if(input != null) {
+				input.close();
+			}
+
+			// FECHA SOCKET
+			if(socket != null &&
+					!socket.isClosed()) {
+
+				socket.close();
+			}
+
+		} catch(IOException e) {
+
+			System.out.println(
+					"Erro ao desconectar cliente.");
+		}
+	}
+
 }
